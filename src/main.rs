@@ -1,3 +1,7 @@
+use std::str::FromStr;
+
+use otus_tokio_devices::socket::Socket;
+use otus_tokio_devices::termometer::Termometer;
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
@@ -28,6 +32,13 @@ async fn handle_connection(mut socket: TcpStream) -> Result<(), Box<dyn std::err
         };
 
         let recieved = String::from_utf8_lossy(&buf[..n]);
-        println!("Received: {}", recieved);
+
+        if let Ok(t) = Termometer::from_str(&recieved) {
+            println!("Temperature set to {}", t);
+        }
+
+        if let Ok(s) = Socket::from_str(&recieved) {
+            println!("Power set to {}", s);
+        }
     }
 }
