@@ -1,0 +1,20 @@
+[package]
+name = "otus-tokio-devices"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.44.1", features = ["full"] }
+rand ={ version =  "*"}
+regex = { version = "1.11.1" }
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[[example]]
+name = "cli_termometer"
+
+
+[[example]]
+name = "cli_socket"
