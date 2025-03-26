@@ -3,12 +3,6 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 
-pub mod message;
-pub mod power;
-pub mod socket;
-pub mod temperature;
-pub mod termometer;
-
 #[tokio::main]
 async fn main() {
     let socket = TcpListener::bind("127.0.0.1:8080").await.unwrap();
@@ -24,7 +18,7 @@ async fn main() {
     }
 }
 async fn handle_connection(mut socket: TcpStream) -> Result<(), Box<dyn std::error::Error>> {
-    let mut buf = [0; 8];
+    let mut buf = [0; 32];
 
     loop {
         let n = match socket.read(&mut buf).await {

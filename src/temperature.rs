@@ -21,6 +21,6 @@ impl Temperature {
 
 impl Display for Temperature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
+        write!(f, "{:.3}", self.value)
     }
 }

@@ -5,7 +5,7 @@ use regex::Regex;
 use crate::power::Power;
 
 #[derive(Debug)]
-struct Socket {
+pub struct Socket {
     power: Power,
 }
 

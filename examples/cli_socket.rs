@@ -1,5 +1,8 @@
 use std::{io::Write, net::TcpStream};
 
+use otus_tokio_devices::power::Power;
+use otus_tokio_devices::socket::Socket;
+
 #[tokio::main]
 async fn main() {
     let mut stream = TcpStream::connect("127.0.0.1:8080").unwrap();
@@ -7,11 +10,11 @@ async fn main() {
     loop {
         let power = rand::random::<u8>();
 
-        let message = format!("{} W", power);
+        let socket = Socket::new( Power::new(power as f32) );
 
-        println!("Sent message: {}", message);
+        println!("Sent message: {}", socket);
 
-        stream.write_all(message.as_bytes()).unwrap();
+        stream.write_all(socket.to_string().as_bytes()).unwrap();
 
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
