@@ -6,6 +6,10 @@ pub struct Temperature {
 }
 
 impl Temperature {
+    pub const MIN_TEMPERATURE: f32 = 0.0;
+    pub const MAX_TEMPERATURE: f32 = 100.0;
+    pub const GRADUATION: f32 = 0.5;
+
     pub fn new(temperature: f32) -> Self {
         Self { value: temperature }
     }
@@ -15,7 +19,13 @@ impl Temperature {
     }
 
     pub fn set(&mut self, value: f32) {
-        self.value = value
+        if (Self::MIN_TEMPERATURE..=Self::MAX_TEMPERATURE).contains(&value) {
+            self.value = value
+        }
+    }
+
+    pub fn ratio(temperature: f32) -> f32 {
+        (temperature - Self::MIN_TEMPERATURE) / (Self::MAX_TEMPERATURE - Self::MIN_TEMPERATURE)
     }
 }
 

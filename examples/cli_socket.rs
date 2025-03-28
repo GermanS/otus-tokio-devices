@@ -69,8 +69,8 @@ impl App {
             .block(Block::default().borders(Borders::ALL).title(
                 "Управление розеткой. Нажмите [\"+\"/\"-\"] для изменения значений. Esc - выход",
             ))
-            .label(format!("Мощность {:.1} W из 2000 W", self.level))
-            .ratio(((self.level - 500.0) / 1500.0).into());
+            .label(format!("Мощность {:.1} W из {} W", self.level, Power::MAX_POWER))
+            .ratio(Power::ratio(self.level).into());
 
         let area = Rect {
             height: frame.area().height.saturating_sub(2),
@@ -122,16 +122,16 @@ impl App {
     }
 
     fn increase_level(&mut self) {
-        if self.level < 2000.0 {
-            self.level += 2.5;
+        if self.level < Power::MAX_POWER {
+            self.level += Power::GRADUATION;
         }
 
         self.notify()
     }
 
     fn decrease_level(&mut self) {
-        if self.level > 500.0 {
-            self.level -= 2.5;
+        if self.level > Power::MIN_POWER {
+            self.level -= Power::GRADUATION;
         }
 
         self.notify()

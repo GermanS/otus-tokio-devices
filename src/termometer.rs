@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::temperature::Temperature;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Termometer {
     temperature: Temperature,
 }

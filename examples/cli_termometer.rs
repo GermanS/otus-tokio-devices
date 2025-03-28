@@ -69,8 +69,8 @@ impl App {
             .block(Block::default().borders(Borders::ALL).title(
                 "Управление термометром. Нажмите [\"+\"/\"-\"] для изменения значений. Esc - выход",
             ))
-            .label(format!("Температура: {:.2} C из 100 С", self.level))
-            .ratio((self.level as f32 / 100.0).into());
+            .label(format!("Температура: {:.2} C из {} С", self.level, Temperature::MAX_TEMPERATURE))
+            .ratio(Temperature::ratio(self.level).into());
 
         let area = Rect {
             height: frame.area().height.saturating_sub(2),
@@ -122,16 +122,16 @@ impl App {
     }
 
     fn increase_level(&mut self) {
-        if self.level < 100.0 {
-            self.level += 0.1;
+        if self.level < Temperature::MAX_TEMPERATURE {
+            self.level += Temperature::GRADUATION;
         }
 
         self.notify()
     }
 
     fn decrease_level(&mut self) {
-        if self.level > 0.1 {
-            self.level -= 0.1;
+        if self.level > Temperature::MIN_TEMPERATURE {
+            self.level -= Temperature::GRADUATION;
         }
 
         self.notify()

@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::power::Power;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Socket {
     power: Power,
 }
