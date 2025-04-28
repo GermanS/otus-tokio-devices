@@ -69,7 +69,11 @@ impl App {
             .block(Block::default().borders(Borders::ALL).title(
                 "Управление розеткой. Нажмите [\"+\"/\"-\"] для изменения значений. Esc - выход",
             ))
-            .label(format!("Мощность {:.1} W из {} W", self.level, Power::MAX_POWER))
+            .label(format!(
+                "Мощность {:.1} W из {} W",
+                self.level,
+                Power::MAX_POWER
+            ))
             .ratio(Power::ratio(self.level).into());
 
         let area = Rect {

@@ -69,7 +69,11 @@ impl App {
             .block(Block::default().borders(Borders::ALL).title(
                 "Управление термометром. Нажмите [\"+\"/\"-\"] для изменения значений. Esc - выход",
             ))
-            .label(format!("Температура: {:.2} C из {} С", self.level, Temperature::MAX_TEMPERATURE))
+            .label(format!(
+                "Температура: {:.2} C из {} С",
+                self.level,
+                Temperature::MAX_TEMPERATURE
+            ))
             .ratio(Temperature::ratio(self.level).into());
 
         let area = Rect {
