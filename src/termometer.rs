@@ -17,6 +17,10 @@ impl Termometer {
     pub fn temperature(&self) -> &Temperature {
         &self.temperature
     }
+
+    pub fn temperature_mut(&mut self) -> &mut Temperature {
+        &mut self.temperature
+    }
 }
 
 impl Display for Termometer {

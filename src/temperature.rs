@@ -1,9 +1,7 @@
 use std::fmt::Display;
 
 #[derive(Debug, Default)]
-pub struct Temperature {
-    value: f32,
-}
+pub struct Temperature(f32);
 
 impl Temperature {
     pub const MIN_TEMPERATURE: f32 = 0.0;
@@ -11,16 +9,16 @@ impl Temperature {
     pub const GRADUATION: f32 = 0.5;
 
     pub fn new(temperature: f32) -> Self {
-        Self { value: temperature }
+        Self( temperature )
     }
 
     pub fn get(&self) -> f32 {
-        self.value
+        self.0
     }
 
     pub fn set(&mut self, value: f32) {
         if (Self::MIN_TEMPERATURE..=Self::MAX_TEMPERATURE).contains(&value) {
-            self.value = value
+            self.0 = value
         }
     }
 
@@ -31,6 +29,6 @@ impl Temperature {
 
 impl Display for Temperature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.3}", self.value)
+        write!(f, "{:.3}", self.get())
     }
 }

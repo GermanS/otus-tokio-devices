@@ -17,6 +17,10 @@ impl Socket {
     pub fn power(&self) -> &Power {
         &self.power
     }
+
+    pub fn power_mut( &mut self ) -> &mut Power {
+        &mut self.power
+    }
 }
 
 impl Display for Socket {
