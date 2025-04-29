@@ -1,5 +1,5 @@
 use std::result::Result::Ok;
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 
 use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use futures::{FutureExt, StreamExt};
@@ -22,9 +22,10 @@ use tokio::{
 };
 
 #[derive(Debug)]
-enum SensorData {
+pub enum SensorData {
     Temperature(f32),
     Power(f32),
+    Unknown,
 }
 
 pub struct App {
@@ -32,26 +33,24 @@ pub struct App {
     running: bool,
     // Event stream.
     event_stream: EventStream,
-    progress1: u8,
-    progress2: u8,
     messages: Vec<String>,
 
-    termometer: Arc<Termometer>,
-    socket: Arc<Socket>,
+    termometer: Termometer,
+    socket: Socket,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let (tx, mut rx) = mpsc::channel::<SensorData>(32);
 
-    let termometer = Arc::new(Termometer::new(Temperature::new(0.0)));
-    let socket = Arc::new(Socket::new(Power::new(0.0)));
+    let termometer = Termometer::new(Temperature::new(0.0));
+    let socket = Socket::new(Power::new(0.0));
 
     let terminal = ratatui::init();
 
     let listener = TcpListener::bind("127.0.0.1:8080").await?;
     let mut app = App::new(termometer, socket).await;
-    app.run(terminal, rx).await;
+    let r = app.run(terminal, rx).await;
 
     loop {
         if !app.is_running() {
@@ -60,11 +59,13 @@ async fn main() -> Result<()> {
 
         let (tcp, _) = listener.accept().await?;
 
+        println!("{:?}", tcp);
+
         let tx_clone = tx.clone();
 
-        tokio::spawn(async move {
-            if let Err(e) = handle_connection(tcp, tx_clone).await {
-                println!("Error handling connection: {}", e);
+        tokio::spawn( async move {
+            if let Ok( data) = handle_connection(tcp).await {
+                tx_clone.send(data).await;
             }
         });
     }
@@ -74,8 +75,7 @@ async fn main() -> Result<()> {
 
 async fn handle_connection(
     mut socket: TcpStream,
-    tx: mpsc::Sender<SensorData>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<SensorData, Box<dyn std::error::Error>> {
     let mut buf = [0; 32];
 
     // loop {
@@ -101,25 +101,25 @@ async fn handle_connection(
     let n = socket.read(&mut buf).await?;
     let recieved = String::from_utf8_lossy(&buf[..n]);
 
+
+    println!("{:?}", recieved);
+
     if let Ok(t) = Termometer::from_str(&recieved) {
-        tx.send(SensorData::Temperature(t.temperature().get()))
-            .await?;
+        return Ok(SensorData::Temperature(t.temperature().get()) );
     }
 
     if let Ok(s) = Socket::from_str(&recieved) {
-        tx.send(SensorData::Power(s.power().get())).await?;
+         return Ok(SensorData::Power(s.power().get()));
     }
 
-    Ok(())
+    return Ok( SensorData::Unknown );
 }
 
 impl App {
-    pub async fn new(t: Arc<Termometer>, s: Arc<Socket>) -> Self {
+    pub async fn new(t: Termometer, s: Socket) -> Self {
         Self {
             running: bool::default(),
             event_stream: EventStream::default(),
-            progress1: 0,
-            progress2: 0,
             messages: vec!["40 градусов".to_string(), "50 ВТ".to_string()],
             termometer: t,
             socket: s,
@@ -135,6 +135,17 @@ impl App {
         while self.is_running() {
             if let Ok(data) = rx.try_recv() {
                 println!("The data: {:?}", data);
+                match data {
+                    SensorData::Power(watt) => {
+                        let power = self.socket.power_mut();
+                        power.set(watt);
+                    },
+                    SensorData::Temperature(celsus ) => {
+                        let temperature = self.termometer.temperature_mut();
+                        temperature.set(celsus);
+                    }
+                    SensorData::Unknown => {}
+                }
             }
 
             terminal.draw(|frame| self.draw(frame))?;
@@ -167,13 +178,24 @@ impl App {
         // Отображение первой шкалы
         let gauge1 = Gauge::default()
             .block(Block::default().borders(Borders::ALL).title("Термометер"))
-            .ratio(self.progress1 as f64 / 100.0);
+            .label(format!(
+                "Температура: {:.2} C из {} С",
+                self.termometer.temperature().get(),
+                Temperature::MAX_TEMPERATURE
+            ))
+
+            .ratio(Temperature::ratio(self.termometer.temperature().get()).into() );
         f.render_widget(gauge1, chunks[0]);
 
         // Отображение второй шкалы
         let gauge2 = Gauge::default()
             .block(Block::default().borders(Borders::ALL).title("Розетка"))
-            .ratio(self.progress2 as f64 / 100.0);
+            .label(format!(
+                "Мощность {:.1} W из {} W",
+                self.socket.power().get(),
+                Power::MAX_POWER
+            ))
+            .ratio(Power::ratio(self.socket.power().get()).into());
         f.render_widget(gauge2, chunks[1]);
 
         // Отображение списка сообщений
