@@ -18,7 +18,7 @@ impl Socket {
         &self.power
     }
 
-    pub fn power_mut( &mut self ) -> &mut Power {
+    pub fn power_mut(&mut self) -> &mut Power {
         &mut self.power
     }
 }

@@ -144,6 +144,7 @@ impl App {
     fn notify(&mut self) {
         let termometer = Termometer::new(Temperature::new(self.level));
 
+
         self.tcp_stream
             .write_all(termometer.to_string().as_bytes())
             .unwrap();

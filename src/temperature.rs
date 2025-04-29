@@ -9,7 +9,7 @@ impl Temperature {
     pub const GRADUATION: f32 = 0.5;
 
     pub fn new(temperature: f32) -> Self {
-        Self( temperature )
+        Self(temperature)
     }
 
     pub fn get(&self) -> f32 {

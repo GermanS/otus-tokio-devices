@@ -1,5 +1,6 @@
-use std::result::Result::Ok;
 use std::str::FromStr;
+use std::sync::mpsc::Receiver;
+use std::{result::Result::Ok, sync::Arc};
 
 use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use futures::{FutureExt, StreamExt};
@@ -15,6 +16,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Gauge, List, ListItem},
 };
+use tokio::sync::Mutex;
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
@@ -37,117 +39,89 @@ pub struct App {
 
     termometer: Termometer,
     socket: Socket,
+    rx: tokio::sync::mpsc::Receiver<Arc<SensorData>>
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let (tx, mut rx) = mpsc::channel::<SensorData>(32);
+    let (tx, rx) = mpsc::channel::<Arc<SensorData>>(32);
+
+    let listener = TcpListener::bind("localhost:8080").await?;
+
+
+    tokio::spawn(async move {
+
+        loop {
+
+            let (tcp, _) = listener.accept().await.unwrap();
+
+            match handle_connection(tcp).await {
+                Ok(data) => {
+                    if let Err(send_err) = tx.send(Arc::new(data)).await {
+                        eprintln!("Failed to send data through channel: {:?}", send_err);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error handling connection: {:?}", e);
+                }
+            }
+        }
+    });
+
+
 
     let termometer = Termometer::new(Temperature::new(0.0));
     let socket = Socket::new(Power::new(0.0));
 
     let terminal = ratatui::init();
 
-    let listener = TcpListener::bind("127.0.0.1:8080").await?;
-    let mut app = App::new(termometer, socket).await;
-    let r = app.run(terminal, rx).await;
+    let mut app = App::new(termometer, socket, rx).await;
+    let _r = app.run(terminal).await;
 
-    loop {
-        if !app.is_running() {
-            break;
-        }
 
-        let (tcp, _) = listener.accept().await?;
-
-        println!("{:?}", tcp);
-
-        let tx_clone = tx.clone();
-
-        tokio::spawn( async move {
-            if let Ok( data) = handle_connection(tcp).await {
-                tx_clone.send(data).await;
-            }
-        });
-    }
 
     Ok(())
 }
 
-async fn handle_connection(
+async fn q(
     mut socket: TcpStream,
-) -> Result<SensorData, Box<dyn std::error::Error>> {
-    let mut buf = [0; 32];
-
-    // loop {
-    //     let n = match socket.read(&mut buf).await {
-    //         //Ok(0) => return Ok(()),
-    //         Ok(n) => n,
-    //         Err(e) => return Err(e.into()),
-    //     };
-
-    //     let recieved = String::from_utf8_lossy(&buf[..n]);
-
-    //     if let Ok(t) = Termometer::from_str(&recieved) {
-    //         println!("Temperature set to {}", t);
-    //         //app.termometer.temperature().set(t.temperature().get());
-    //         //app.messages.push(format!("Temperature set to {}", t));
-    //     }
-
-    //     if let Ok(s) = Socket::from_str(&recieved) {
-    //         println!("Power set to {}", s);
-    //     }
-    // }
+) -> anyhow::Result<SensorData> {
+    let mut buf = [0; 128];
 
     let n = socket.read(&mut buf).await?;
     let recieved = String::from_utf8_lossy(&buf[..n]);
 
-
-    println!("{:?}", recieved);
+    //println!("{:?}", recieved);
 
     if let Ok(t) = Termometer::from_str(&recieved) {
-        return Ok(SensorData::Temperature(t.temperature().get()) );
+        return Ok(SensorData::Temperature(t.temperature().get()));
     }
 
     if let Ok(s) = Socket::from_str(&recieved) {
-         return Ok(SensorData::Power(s.power().get()));
+        return Ok(SensorData::Power(s.power().get()));
     }
 
-    return Ok( SensorData::Unknown );
+    return Ok(SensorData::Unknown);
 }
 
 impl App {
-    pub async fn new(t: Termometer, s: Socket) -> Self {
+    pub async fn new(t: Termometer, s: Socket, rx: tokio::sync::mpsc::Receiver<Arc<SensorData>>) -> Self {
         Self {
-            running: bool::default(),
+            running: true,
             event_stream: EventStream::default(),
             messages: vec!["40 градусов".to_string(), "50 ВТ".to_string()],
             termometer: t,
             socket: s,
+            rx: rx,
         }
     }
 
     pub async fn run(
         &mut self,
-        mut terminal: DefaultTerminal,
-        mut rx: mpsc::Receiver<SensorData>,
+        mut terminal: DefaultTerminal
     ) -> Result<()> {
-        self.running = true;
-        while self.is_running() {
-            if let Ok(data) = rx.try_recv() {
-                println!("The data: {:?}", data);
-                match data {
-                    SensorData::Power(watt) => {
-                        let power = self.socket.power_mut();
-                        power.set(watt);
-                    },
-                    SensorData::Temperature(celsus ) => {
-                        let temperature = self.termometer.temperature_mut();
-                        temperature.set(celsus);
-                    }
-                    SensorData::Unknown => {}
-                }
-            }
 
+        while self.is_running() {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_crossterm_events().await?;
         }
@@ -163,6 +137,11 @@ impl App {
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
 
     fn draw(&mut self, f: &mut Frame) {
+        if let Ok(data) = &self.rx.try_recv() {
+            self.process_sensor_data(data);
+        }
+
+
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints(
@@ -183,8 +162,7 @@ impl App {
                 self.termometer.temperature().get(),
                 Temperature::MAX_TEMPERATURE
             ))
-
-            .ratio(Temperature::ratio(self.termometer.temperature().get()).into() );
+            .ratio(Temperature::ratio(self.termometer.temperature().get()).into());
         f.render_widget(gauge1, chunks[0]);
 
         // Отображение второй шкалы
@@ -252,5 +230,21 @@ impl App {
 
     fn is_running(&self) -> bool {
         self.running
+    }
+
+    pub fn process_sensor_data(&mut self, data: &SensorData) {
+        match *data {
+            SensorData::Temperature(temp) => {
+                self.termometer.temperature_mut().set(temp); // Устанавливаем температуру в Termometer
+                self.messages.push(format!("Temperature set to {}", temp));
+            }
+            SensorData::Power(power) => {
+                self.socket.power_mut().set(power); // Устанавливаем мощность в Socket
+                self.messages.push(format!("Power set to {}", power));
+            }
+            SensorData::Unknown => {
+                self.messages.push("Unknown data received.".to_string());
+            }
+        }
     }
 }
