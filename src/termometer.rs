@@ -49,7 +49,8 @@ impl FromStr for Termometer {
 }
 
 mod test {
-    use super::*;
+    use crate::termometer::Termometer;
+    use std::str::FromStr;
 
     #[test]
     fn positive_f32_in_string() {

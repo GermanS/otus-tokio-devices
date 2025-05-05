@@ -49,7 +49,9 @@ impl FromStr for Socket {
 }
 
 mod test {
-    use super::*;
+    use std::str::FromStr;
+
+    use crate::socket::Socket;
 
     #[test]
     fn positive_f32_in_string() {
