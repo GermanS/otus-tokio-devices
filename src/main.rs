@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use std::sync::mpsc::Receiver;
 use std::{result::Result::Ok, sync::Arc};
 
 use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -17,7 +16,6 @@ use ratatui::{
     widgets::{Block, Borders, Gauge, List, ListItem},
 };
 use tokio::io::AsyncWriteExt;
-use tokio::sync::Mutex;
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
@@ -102,7 +100,7 @@ async fn handle_connection(mut socket: TcpStream) -> anyhow::Result<SensorData> 
     let response = format!("Ok: {}\n", recieved);
     socket.write_all(response.as_bytes()).await?;
 
-    return Ok(SensorData::Unknown);
+    Ok(SensorData::Unknown)
 }
 
 impl App {
@@ -117,7 +115,7 @@ impl App {
             messages: vec!["40 градусов".to_string(), "50 ВТ".to_string()],
             termometer: t,
             socket: s,
-            rx: rx,
+            rx,
         }
     }
 
@@ -136,7 +134,6 @@ impl App {
     /// This is where you add new widgets. See the following resources for more information:
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
-
     fn draw(&mut self, f: &mut Frame) {
         if let Ok(data) = &self.rx.try_recv() {
             self.process_sensor_data(data);
