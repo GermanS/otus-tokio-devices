@@ -54,7 +54,7 @@
 
 ---
 
-Удачи в выполнении задания! 🚀!
+Удачи в выполнении задания! 🚀
 
 ---
-[otus-tokio-devices](https://github.com/user-attachments/assets/73c7fd60-74e5-4595-bc3a-371a38286c90)
+![otus-tokio-devices](https://github.com/user-attachments/assets/73c7fd60-74e5-4595-bc3a-371a38286c90)
