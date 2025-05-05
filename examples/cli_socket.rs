@@ -22,13 +22,12 @@ async fn main() -> color_eyre::Result<()> {
 
 #[derive(Debug)]
 pub struct App {
-    /// Is the application running?
     running: bool,
-    // Event stream.
+
     event_stream: EventStream,
+
     level: f32,
 
-    tcp_stream: TcpStream,
 }
 
 impl Default for App {
@@ -37,7 +36,6 @@ impl Default for App {
             running: bool::default(),
             event_stream: EventStream::default(),
             level: 1500.0,
-            tcp_stream: TcpStream::connect("localhost:8080").expect("Unable to connect"),
         }
     }
 }
@@ -144,7 +142,10 @@ impl App {
     fn notify(&mut self) {
         let socket = Socket::new(Power::new(self.level));
 
-        self.tcp_stream
+        let mut tcp_stream = TcpStream::connect("localhost:8080")
+            .expect("Unable to connect");
+
+        tcp_stream
             .write_all(socket.to_string().as_bytes())
             .unwrap();
     }

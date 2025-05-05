@@ -16,6 +16,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Gauge, List, ListItem},
 };
+use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 use tokio::{
     io::AsyncReadExt,
@@ -49,22 +50,26 @@ async fn main() -> Result<()> {
     let listener = TcpListener::bind("localhost:8080").await?;
 
 
+    let t = Arc::new(tx);
+
     tokio::spawn(async move {
 
         loop {
-
             let (tcp, _) = listener.accept().await.unwrap();
 
-            match handle_connection(tcp).await {
-                Ok(data) => {
-                    if let Err(send_err) = tx.send(Arc::new(data)).await {
-                        eprintln!("Failed to send data through channel: {:?}", send_err);
+            let tx_clone = Arc::clone(&t);
+            tokio::spawn(async move {
+                match handle_connection(tcp).await {
+                    Ok(data) => {
+                        if let Err(send_err) = tx_clone.send(Arc::new(data)).await {
+                            eprintln!("Failed to send data through channel: {:?}", send_err);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Error handling connection: {:?}", e);
                     }
                 }
-                Err(e) => {
-                    eprintln!("Error handling connection: {:?}", e);
-                }
-            }
+            });
         }
     });
 
@@ -83,7 +88,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn q(
+async fn handle_connection(
     mut socket: TcpStream,
 ) -> anyhow::Result<SensorData> {
     let mut buf = [0; 128];
@@ -100,6 +105,10 @@ async fn q(
     if let Ok(s) = Socket::from_str(&recieved) {
         return Ok(SensorData::Power(s.power().get()));
     }
+
+    // Отправляем ответ клиенту
+    let response = format!("Ok: {}\n", recieved);
+    socket.write_all(response.as_bytes()).await?;
 
     return Ok(SensorData::Unknown);
 }

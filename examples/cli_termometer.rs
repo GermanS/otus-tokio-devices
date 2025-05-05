@@ -22,13 +22,10 @@ async fn main() -> color_eyre::Result<()> {
 
 #[derive(Debug)]
 pub struct App {
-    /// Is the application running?
     running: bool,
-    // Event stream.
     event_stream: EventStream,
-    level: f32,
 
-    tcp_stream: TcpStream,
+    level: f32,
 }
 
 impl Default for App {
@@ -37,7 +34,6 @@ impl Default for App {
             running: bool::default(),
             event_stream: EventStream::default(),
             level: f32::default(),
-            tcp_stream: TcpStream::connect("localhost:8080").expect("Unable to connect"),
         }
     }
 }
@@ -144,8 +140,10 @@ impl App {
     fn notify(&mut self) {
         let termometer = Termometer::new(Temperature::new(self.level));
 
+        let mut tcp_stream = TcpStream::connect("localhost:8080")
+            .expect("Unable to connect");
 
-        self.tcp_stream
+        tcp_stream
             .write_all(termometer.to_string().as_bytes())
             .unwrap();
     }
