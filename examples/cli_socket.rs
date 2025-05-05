@@ -89,7 +89,7 @@ impl App {
                         match evt {
                             Event::Key(key)
                                 if key.kind == KeyEventKind::Press
-                                    => self.on_key_event(key),
+                                    => self.on_key_event(key).await,
                             Event::Mouse(_) => {}
                             Event::Resize(_, _) => {}
                             _ => {}
@@ -106,13 +106,13 @@ impl App {
     }
 
     /// Handles the key events and updates the state of [`App`].
-    fn on_key_event(&mut self, key: KeyEvent) {
+    async fn on_key_event(&mut self, key: KeyEvent) {
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))
             | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
             // Add other key handlers here.
-            (_, KeyCode::Char('+')) => self.increase_level(),
-            (_, KeyCode::Char('-')) => self.decrease_level(),
+            (_, KeyCode::Char('+')) => self.increase_level().await,
+            (_, KeyCode::Char('-')) => self.decrease_level().await,
             _ => {}
         }
     }
@@ -122,23 +122,23 @@ impl App {
         self.running = false;
     }
 
-    fn increase_level(&mut self) {
+    async fn increase_level(&mut self) {
         if self.level < Power::MAX_POWER {
             self.level += Power::GRADUATION;
         }
 
-        self.notify()
+        self.notify().await
     }
 
-    fn decrease_level(&mut self) {
+    async fn decrease_level(&mut self) {
         if self.level > Power::MIN_POWER {
             self.level -= Power::GRADUATION;
         }
 
-        self.notify()
+        self.notify().await
     }
 
-    fn notify(&mut self) {
+    async fn notify(&mut self) {
         let socket = Socket::new(Power::new(self.level));
 
         let mut tcp_stream = TcpStream::connect("localhost:8080").expect("Unable to connect");
