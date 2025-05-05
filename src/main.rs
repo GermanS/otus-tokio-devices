@@ -112,7 +112,7 @@ impl App {
         Self {
             running: true,
             event_stream: EventStream::default(),
-            messages: vec!["40 градусов".to_string(), "50 ВТ".to_string()],
+            messages: vec![],
             termometer: t,
             socket: s,
             rx,
@@ -143,8 +143,8 @@ impl App {
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Length(3), // Первая шкала
-                    Constraint::Length(3), // Вторая шкала
+                    Constraint::Length(3), // шкала термометра
+                    Constraint::Length(3), // шкала розетки
                     Constraint::Min(5),    // Список сообщений
                 ]
                 .as_ref(),
@@ -179,9 +179,11 @@ impl App {
             .iter()
             .map(|msg| ListItem::new(msg.as_str()))
             .collect();
-        let messages_list =
-            List::new(messages).block(Block::default().borders(Borders::ALL).title("Сообщения"));
-        //            .start_corner(Corner::BottomLeft);
+        let messages_list = List::new(messages)
+            .block(Block::default().borders(Borders::ALL).title("Сообщения"))
+            .direction(ratatui::widgets::ListDirection::BottomToTop)
+            .scroll_padding(2);
+
         f.render_widget(messages_list, chunks[2]);
     }
 
@@ -230,14 +232,14 @@ impl App {
         match *data {
             SensorData::Temperature(temp) => {
                 self.termometer.temperature_mut().set(temp); // Устанавливаем температуру в Termometer
-                self.messages.push(format!("Temperature set to {}", temp));
+                self.messages.insert(0, format!("🌡️Temperature set to {} C", temp));
             }
             SensorData::Power(power) => {
                 self.socket.power_mut().set(power); // Устанавливаем мощность в Socket
-                self.messages.push(format!("Power set to {}", power));
+                self.messages.insert(0, format!("⚡ Power set to {} W", power));
             }
             SensorData::Unknown => {
-                self.messages.push("Unknown data received.".to_string());
+                self.messages.insert(0,"Unknown data received.".to_string());
             }
         }
     }
