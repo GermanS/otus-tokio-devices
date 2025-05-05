@@ -232,14 +232,17 @@ impl App {
         match *data {
             SensorData::Temperature(temp) => {
                 self.termometer.temperature_mut().set(temp); // Устанавливаем температуру в Termometer
-                self.messages.insert(0, format!("🌡️Temperature set to {} C", temp));
+                self.messages
+                    .insert(0, format!("🌡️Temperature set to {} C", temp));
             }
             SensorData::Power(power) => {
                 self.socket.power_mut().set(power); // Устанавливаем мощность в Socket
-                self.messages.insert(0, format!("⚡ Power set to {} W", power));
+                self.messages
+                    .insert(0, format!("⚡ Power set to {} W", power));
             }
             SensorData::Unknown => {
-                self.messages.insert(0,"Unknown data received.".to_string());
+                self.messages
+                    .insert(0, "Unknown data received.".to_string());
             }
         }
     }
