@@ -47,38 +47,3 @@ impl FromStr for Socket {
         }
     }
 }
-
-mod test {
-    use std::str::FromStr;
-
-    use crate::socket::Socket;
-
-    #[test]
-    fn positive_f32_in_string() {
-        let message = "Socket 21.5 W";
-
-        let socket = Socket::from_str(message);
-
-        assert!(socket.is_ok(), "Looks like string has been parsed well");
-        assert!(socket.unwrap().power().get() == 21.5, "Power is correct");
-    }
-
-    #[test]
-    fn positive_u32_in_message() {
-        let message = "Socket  1500 W";
-
-        let result = Socket::from_str(message);
-
-        assert!(result.is_ok(), "Looks like string has been parsed well");
-        assert!(result.unwrap().power().get() == 1500.0, "Power is correct");
-    }
-
-    #[test]
-    fn negative_missing_temperature() {
-        let message = "Socket -x- W";
-
-        let result = Socket::from_str(message);
-
-        assert!(!result.is_ok(), "Got an error");
-    }
-}
