@@ -40,7 +40,7 @@ pub struct App {
 
     termometer: Termometer,
     socket: Socket,
-    rx: tokio::sync::mpsc::Receiver<Arc<SensorData>>
+    rx: tokio::sync::mpsc::Receiver<Arc<SensorData>>,
 }
 
 #[tokio::main]
@@ -49,11 +49,9 @@ async fn main() -> Result<()> {
 
     let listener = TcpListener::bind("localhost:8080").await?;
 
-
     let t = Arc::new(tx);
 
     tokio::spawn(async move {
-
         loop {
             let (tcp, _) = listener.accept().await.unwrap();
 
@@ -73,8 +71,6 @@ async fn main() -> Result<()> {
         }
     });
 
-
-
     let termometer = Termometer::new(Temperature::new(0.0));
     let socket = Socket::new(Power::new(0.0));
 
@@ -83,14 +79,10 @@ async fn main() -> Result<()> {
     let mut app = App::new(termometer, socket, rx).await;
     let _r = app.run(terminal).await;
 
-
-
     Ok(())
 }
 
-async fn handle_connection(
-    mut socket: TcpStream,
-) -> anyhow::Result<SensorData> {
+async fn handle_connection(mut socket: TcpStream) -> anyhow::Result<SensorData> {
     let mut buf = [0; 128];
 
     let n = socket.read(&mut buf).await?;
@@ -114,7 +106,11 @@ async fn handle_connection(
 }
 
 impl App {
-    pub async fn new(t: Termometer, s: Socket, rx: tokio::sync::mpsc::Receiver<Arc<SensorData>>) -> Self {
+    pub async fn new(
+        t: Termometer,
+        s: Socket,
+        rx: tokio::sync::mpsc::Receiver<Arc<SensorData>>,
+    ) -> Self {
         Self {
             running: true,
             event_stream: EventStream::default(),
@@ -125,11 +121,7 @@ impl App {
         }
     }
 
-    pub async fn run(
-        &mut self,
-        mut terminal: DefaultTerminal
-    ) -> Result<()> {
-
+    pub async fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while self.is_running() {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_crossterm_events().await?;
@@ -149,7 +141,6 @@ impl App {
         if let Ok(data) = &self.rx.try_recv() {
             self.process_sensor_data(data);
         }
-
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)

@@ -140,8 +140,7 @@ impl App {
     fn notify(&mut self) {
         let termometer = Termometer::new(Temperature::new(self.level));
 
-        let mut tcp_stream = TcpStream::connect("localhost:8080")
-            .expect("Unable to connect");
+        let mut tcp_stream = TcpStream::connect("localhost:8080").expect("Unable to connect");
 
         tcp_stream
             .write_all(termometer.to_string().as_bytes())

@@ -27,7 +27,6 @@ pub struct App {
     event_stream: EventStream,
 
     level: f32,
-
 }
 
 impl Default for App {
@@ -142,11 +141,8 @@ impl App {
     fn notify(&mut self) {
         let socket = Socket::new(Power::new(self.level));
 
-        let mut tcp_stream = TcpStream::connect("localhost:8080")
-            .expect("Unable to connect");
+        let mut tcp_stream = TcpStream::connect("localhost:8080").expect("Unable to connect");
 
-        tcp_stream
-            .write_all(socket.to_string().as_bytes())
-            .unwrap();
+        tcp_stream.write_all(socket.to_string().as_bytes()).unwrap();
     }
 }
